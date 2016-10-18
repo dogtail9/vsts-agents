@@ -5,4 +5,6 @@
 
 FROM dogtail9/vsts-agent-windows-node
 
-RUN npm install -g grunt
+RUN powershell -Command \
+    npm install -g grunt ; \
+    npm install -g gulp ; 
