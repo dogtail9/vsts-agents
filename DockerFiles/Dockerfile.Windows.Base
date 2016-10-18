@@ -1,0 +1,17 @@
+FROM microsoft/windowsservercore
+ENV AGENT_VERSION=2.107.1
+
+WORKDIR ./Agent
+
+# RUN powershell -Command \
+#    $ErrorActionPreference = 'Stop' ; \
+#    (New-Object System.Net.WebClient).DownloadFile('https://github.com/Microsoft/vsts-agent/releases/download/v%AGENT_VERSION%/vsts-agent-win7-x64-%AGENT_VERSION%.zip', 'agent.zip') ; \
+#    Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("agent.zip", "$PWD") ; \
+
+RUN powershell -Command $ErrorActionPreference = 'Stop' ; \
+    (New-Object System.Net.WebClient).DownloadFile('https://github.com/Microsoft/vsts-agent/releases/download/v2.107.1/vsts-agent-win7-x64-2.107.1.zip', 'agent.zip') ; 
+
+COPY ./start.ps1 .
+
+#ENTRYPOINT ["powershell", "-Command"]
+#CMD ["./start.ps1"]

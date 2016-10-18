@@ -1,0 +1,34 @@
+FROM dogtail9/vsts-agent-base
+# install vsts pre-reqs and basic build environment items
+
+ENV NODE_VERSION_LTS=4.5.0 \
+    NODE_VERSION_CURRENT=6.5.0 \
+    node=/usr/local/vsts-agent/.nodenv/shims/node \
+    npm=/usr/local/vsts-agent/.nodenv/shims/npm \
+    grunt=/usr/local/vsts-agent/.nodenv/shims/grunt \
+    mocha=/usr/local/vsts-agent/.nodenv/shims/mocha \
+    gulp=/usr/local/vsts-agent/.nodenv/shims/gulp \
+    PATH=/usr/local/vsts-agent/.nodenv/shims:/usr/local/vsts-agent/.nodenv/bin:$PATH
+
+USER vsts
+
+RUN \
+     git clone https://github.com/nodenv/nodenv.git ~/.nodenv \
+  && cd ~/.nodenv && src/configure && make -C src \
+  && echo 'export PATH="$HOME/.nodenv/bin:$PATH"' >> ~/.bashrc \
+  && echo 'eval "$(nodenv init -)"' >> ~/.bashrc \
+  && export PATH="$HOME/.nodenv/bin:$PATH" \
+  && eval "$(nodenv init -)" \
+  && git clone https://github.com/nodenv/node-build.git $(nodenv root)/plugins/node-build \
+  && nodenv install ${NODE_VERSION_LTS} \
+  && nodenv local ${NODE_VERSION_LTS} \
+  && npm install -g grunt \
+  && npm install -g mocha \
+  && npm install -g gulp \
+  && nodenv install ${NODE_VERSION_CURRENT} \
+  && nodenv global ${NODE_VERSION_CURRENT} \
+  && npm install -g grunt \
+  && npm install -g mocha \
+  && npm install -g gulp
+
+ENV AGENT_FLAVOR=NodeJS
