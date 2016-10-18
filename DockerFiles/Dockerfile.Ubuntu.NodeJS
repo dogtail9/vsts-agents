@@ -1,4 +1,4 @@
-FROM dogtail9/vsts-agent-base
+FROM dogtail9/vsts-agent-ubuntu-base
 # install vsts pre-reqs and basic build environment items
 
 ENV NODE_VERSION_LTS=4.5.0 \
