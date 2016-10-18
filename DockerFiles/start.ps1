@@ -1,12 +1,42 @@
-Write-Host "Hello World"
+Write-Host "Configure Agent"
 
-./config.sh --unattended \
-  --agent "${VSTS_AGENT:-$(hostname)}" \
-  --url "https://$VSTS_ACCOUNT.visualstudio.com" \
-  --auth PAT \
-  --token "$VSTS_TOKEN" \
-  --pool "${VSTS_POOL:-Default}" \
-  --work "${VSTS_WORK:-_work}" \
-  --replace
+$AgentName = "NotSet";
+$PoolName = "NotSet";
+$WorkFolder = "NotSet";
+$Url = "https://" + $Env:VSTS_ACCOUNT + ".visualstudio.com";
 
-./run.sh
+if([string]::IsNullOrEmpty($Env:VSTS_AGENT))
+{
+  $AgentName = $Env:COMPUTERNAME;
+}
+else
+{
+  $AgentName = $Env:VSTS_AGENT;
+}
+
+if([string]::IsNullOrEmpty($Env:VSTS_POOL))
+{
+  $PoolName = "Default";
+}
+else 
+{  
+  $PoolName = $Env:VSTS_POOL; 
+}
+
+if([string]::IsNullOrEmpty($Env:VSTS_WORK))
+{
+  $WorkFolder = "_work";
+}
+else 
+{
+  $WorkFolder = $Env:VSTS_WORK;
+}
+
+Write-Host "AgentName: $AgentName"
+Write-Host "Url: $Url"
+Write-Host "Poolname: $PoolName"
+Write-Host "WorkFolder: $WorkFolder"
+
+./config.cmd --unattended --agent $AgentName --url $Url --auth PAT --token $Env:VSTS_TOKEN --pool $PoolName --work $WorkFolder --replace
+
+./run.cmd
