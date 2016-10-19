@@ -1,0 +1,58 @@
+FROM microsoft/windowsservercore
+
+# Install Agent
+ENV AGENT_VERSION=2.107.1
+
+WORKDIR ./Agent
+
+RUN powershell -Command $ErrorActionPreference = 'Stop' ; \ 
+                        (New-Object System.Net.WebClient).DownloadFile('https://github.com/Microsoft/vsts-agent/releases/download/v2.107.1/vsts-agent-win7-x64-2.107.1.zip', 'agent.zip') ; \  
+                        Expand-Archive agent.zip -DestinationPath $PWD ; \
+                        Remove-Item -Force agent.zip ;                        
+
+COPY ./start.ps1 .
+
+# Install .NET Core
+ENV DOTNET_SDK_VERSION 1.0.0-preview2-003131
+ENV DOTNET_SDK_DOWNLOAD_URL https://dotnetcli.blob.core.windows.net/dotnet/preview/Binaries/$DOTNET_SDK_VERSION/dotnet-dev-win-x64.$DOTNET_SDK_VERSION.zip
+
+RUN powershell -NoProfile -Command \
+        $ErrorActionPreference = 'Stop'; \
+        Invoke-WebRequest %DOTNET_SDK_DOWNLOAD_URL% -OutFile dotnet.zip; \
+        Expand-Archive dotnet.zip -DestinationPath '%ProgramFiles%\dotnet'; \
+        Remove-Item -Force dotnet.zip
+
+RUN setx /M PATH "%PATH%;%ProgramFiles%\dotnet"
+
+# Trigger the population of the local package cache
+ENV NUGET_XMLDOC_MODE skip
+
+RUN mkdir warmup \
+    && cd warmup \
+    && dotnet new \
+    && cd .. \
+    && rmdir /q/s warmup
+
+# Install NodeJS
+ENV NPM_CONFIG_LOGLEVEL info
+ENV NODE_VERSION 4.5.0
+ENV NODE_SHA256 16aab15b29e79746d1bae708f6a5dbed8ef3c87426a9408f7261163d0cda0f56
+RUN powershell -Command \
+    $ErrorActionPreference = 'Stop' ; \
+    (New-Object System.Net.WebClient).DownloadFile('https://nodejs.org/dist/v%NODE_VERSION%/node-v%NODE_VERSION%-win-x64.zip', 'node.zip') ; \
+    if ((Get-FileHash node.zip -Algorithm sha256).Hash -ne $env:NODE_SHA256) {exit 1} ; \
+    Expand-Archive node.zip -DestinationPath C:\ ; \
+    Rename-Item 'C:\node-v%NODE_VERSION%-win-x64' 'C:\nodejs' ; \
+    New-Item '%APPDATA%\npm' ; \
+    $env:PATH = 'C:\nodejs;%APPDATA%\npm;' + $env:PATH ; \
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine) ; \
+    Remove-Item -Path node.zip
+
+# Install Grunt & Gulp
+RUN powershell -Command \
+    npm install -g grunt ; \
+    npm install -g gulp ;     
+
+# Start the agent
+ENTRYPOINT ["powershell", "-Command"]
+CMD ["./start.ps1"]

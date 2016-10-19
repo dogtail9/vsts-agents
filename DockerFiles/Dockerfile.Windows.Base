@@ -1,6 +1,3 @@
-# docker build -t="dogtail9/vsts-agent-windows-base" -f="Dockerfile.Windows.Base" .
-# docker run --rm -d -e VSTS_ACCOUNT=<ACCOUNT> -e VSTS_TOKEN=<TOKEN> -it dogtail9/vsts-agent-windows-base
-
 FROM microsoft/windowsservercore
 ENV AGENT_VERSION=2.107.1
 

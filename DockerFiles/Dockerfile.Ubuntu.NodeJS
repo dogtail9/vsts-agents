@@ -1,5 +1,5 @@
 FROM dogtail9/vsts-agent-ubuntu-base
-# install vsts pre-reqs and basic build environment items
+# install Javascript tools
 
 ENV NODE_VERSION_LTS=4.5.0 \
     NODE_VERSION_CURRENT=6.5.0 \
