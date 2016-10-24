@@ -1,4 +1,4 @@
-FROM dogtail9/vsts-agent-windows-dotnetcore
+FROM dogtail9/vsts-agent:windows-dotnetcore-v0.1
 
 ENV NPM_CONFIG_LOGLEVEL info
 ENV NODE_VERSION 4.5.0

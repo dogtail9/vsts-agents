@@ -1,4 +1,4 @@
-FROM dogtail9/vsts-agent-windows-node
+FROM dogtail9/vsts-agent:windows-node-v0.1
 
 RUN powershell -Command \
     npm install -g grunt ; \

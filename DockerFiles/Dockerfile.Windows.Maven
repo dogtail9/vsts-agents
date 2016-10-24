@@ -1,0 +1,15 @@
+FROM dogtail9/vsts-agent:windows-java-v0.1
+
+# Install Maven
+ENV MAVEN_VERSION 3.3.9
+ENV MAVEN_DOWNLOAD_URL http://apache.mirrors.spacedump.net/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.zip
+
+RUN powershell -NoProfile -Command \
+        $ErrorActionPreference = 'Stop'; \
+        Invoke-WebRequest %MAVEN_DOWNLOAD_URL% -OutFile maven.zip; \
+        Expand-Archive maven.zip -DestinationPath 'C:\Maven'; \
+        Remove-Item -Force maven.zip
+
+ENV maven C:\\Maven\\apache-maven-3.3.9\\bin
+
+RUN setx /M PATH "%PATH%;C:\Maven\apache-maven-3.3.9\bin"

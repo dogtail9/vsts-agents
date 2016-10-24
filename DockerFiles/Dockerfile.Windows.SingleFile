@@ -26,6 +26,7 @@ RUN setx /M PATH "%PATH%;%ProgramFiles%\dotnet"
 
 # Trigger the population of the local package cache
 ENV NUGET_XMLDOC_MODE skip
+ENV DOTNET_CLI_TELEMETRY_OPTOUT 1
 
 RUN mkdir warmup \
     && cd warmup \
@@ -52,6 +53,37 @@ RUN powershell -Command \
 RUN powershell -Command \
     npm install -g grunt ; \
     npm install -g gulp ;     
+
+# Install Java
+ENV JAVA_JDK_DOWNLOAD_URL http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-windows-x64.exe
+
+RUN powershell -NoProfile -Command\
+    $client = new-object System.Net.WebClient ; \ 
+    $cookie = 'oraclelicense=accept-securebackup-cookie' ; \
+    $client.Headers.Add([System.Net.HttpRequestHeader]::Cookie, $cookie) ; \ 
+    $client.downloadFile('http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-windows-x64.exe', 'c:\agent\jdk-8u112-windows-x64.exe') ; \
+    Start-Process -filepath jdk-8u112-windows-x64.exe -passthru -wait -argumentlist "/s" ; \
+    Remove-Item -Force jdk-8u112-windows-x64.exe
+
+ENV JAVA_HOME c:\\Program Files\\java\\jre1.8.0_112
+ENV java c:\\Program Files\\java\\jre1.8.0_112
+ENV JDK C:\\Program files\\java\\jdk1.8.0_112
+
+RUN setx /M PATH "%PATH%;%JAVA_HOME%\bin"
+
+# Install Maven
+ENV MAVEN_VERSION 3.3.9
+ENV MAVEN_DOWNLOAD_URL http://apache.mirrors.spacedump.net/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.zip
+
+RUN powershell -NoProfile -Command \
+        $ErrorActionPreference = 'Stop'; \
+        Invoke-WebRequest %MAVEN_DOWNLOAD_URL% -OutFile maven.zip; \
+        Expand-Archive maven.zip -DestinationPath 'C:\Maven'; \
+        Remove-Item -Force maven.zip
+
+ENV maven C:\\Maven\\apache-maven-3.3.9\\bin
+
+RUN setx /M PATH "%PATH%;C:\Maven\apache-maven-3.3.9\bin"
 
 # Start the agent
 ENTRYPOINT ["powershell", "-Command"]
