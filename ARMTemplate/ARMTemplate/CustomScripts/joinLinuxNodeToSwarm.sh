@@ -10,11 +10,12 @@ apt-get -y install docker-engine
 service docker start
 systemctl enable docker
 apt-get -y install sshpass
+deletetext="To add a worker to this swarm, run the following command:"
 commandstring="sshpass -p $1 ssh -o StrictHostKeyChecking=no $2@$3-master-0.westeurope.cloudapp.azure.com"
 echo $commandstring
 token=$($commandstring 'echo $(sudo docker swarm join-token worker)')
 echo $token
-result=${token/'To add a worker to this swarm, run the following command:'}
+result=${token/$deletetext}
 echo $result
 command="${result//\\}"
 echo $command
