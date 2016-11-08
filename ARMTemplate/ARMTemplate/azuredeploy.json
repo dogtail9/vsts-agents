@@ -1,0 +1,656 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clusterdisksType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "numberOfMasters": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1
+    },
+    "numberOfLinuxNodes": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1
+    },
+    "numberOfWindowsNodes": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1
+    },
+    "masterAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "masterAdminPassword": {
+      "type": "securestring"
+    },
+    "PublicIpDnsNamePrefix": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "variables": {
+    "singleQuote": "'",
+    "masterName": "master",
+    "linuxnodeName": "linuxnode",
+    "windowsnodeName": "windowsnode",
+    "masterPublicIpDnsName": "[concat(parameters('PublicIpDnsNamePrefix'), '-master')]",
+    "linuxNodePublicIpDnsName": "[concat(parameters('PublicIpDnsNamePrefix'), '-linux-node')]",
+    "windowsNodePublicIpDnsName": "[concat(parameters('PublicIpDnsNamePrefix'), '-win-node')]",
+    "linux-sku": "16.04.0-LTS",
+    "windows-sku": "2016-Datacenter-with-Containers",
+    "linux-ImagePublisher": "Canonical",
+    "linux-ImageOffer": "UbuntuServer",
+    "cluster-vnetPrefix": "10.0.0.0/16",
+    "cluster-vnetClusterSubnetName": "Cluster-Subnet",
+    "cluster-vnetClusterSubnetPrefix": "10.0.0.0/24",
+    "cluster-vnetSubnet2Name": "Subnet-2",
+    "cluster-vnetSubnet2Prefix": "10.0.1.0/24",
+    "clusterdisksName": "[concat('disk', uniqueString(resourceGroup().id))]",
+    "masterOSDiskName": "masterOSDisk",
+    "masterVmSize": "Standard_D2_v2",
+    "masterVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'cluster-vnet')]",
+    "masterSubnetRef": "[concat(variables('masterVnetID'), '/subnets/', variables('cluster-vnetClusterSubnetName'))]",
+    "masterStorageAccountContainerName": "vhds",
+    "masterNicName": "[concat(variables('masterName'), 'NetworkInterface')]",
+    "linuxnodeOSDiskName": "linuxnodeOSDisk",
+    "linuxnodeVmSize": "Standard_D2_v2",
+    "linuxnodeVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'cluster-vnet')]",
+    "linuxnodeSubnetRef": "[concat(variables('linuxnodeVnetID'), '/subnets/', variables('cluster-vnetClusterSubnetName'))]",
+    "linuxnodeStorageAccountContainerName": "vhds",
+    "linuxnodeNicName": "[concat(variables('linuxnodeName'), 'NetworkInterface')]",
+    "windowsnodeImagePublisher": "MicrosoftWindowsServer",
+    "windowsnodeImageOffer": "WindowsServer",
+    "windowsnodeOSDiskName": "windowsnodeOSDisk",
+    "windowsnodeVmSize": "Standard_D2_v2",
+    "windowsnodeVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'cluster-vnet')]",
+    "windowsnodeSubnetRef": "[concat(variables('windowsnodeVnetID'), '/subnets/', variables('cluster-vnetClusterSubnetName'))]",
+    "windowsnodeStorageAccountContainerName": "vhds",
+    "windowsnodeNicName": "[concat(variables('windowsnodeName'), 'NetworkInterface')]",
+    "masterPublicIpName": "masterPublicIp",
+    "linuxNodePublicIpName": "linuxNodePublicIp",
+    "windowsNodePublicIpName": "windowsNodePublicIp",
+    "networkSecurityGroupName": "ClusterNetworkSecurityGroup"
+  },
+  "resources": [
+    {
+      "name": "[variables('networkSecurityGroupName')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2016-03-30",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "default-allow-ssh",
+            "properties": {
+              "protocol": "TCP",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1000,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "cluster-management",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "2377",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1010,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "communication-among-nodes",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "7946",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1020,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "overlay-network-traffic",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "4789",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1030,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "cluster-management-communications",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "2377",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "communication-among-nodes-in",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "7946",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "overlay-network-traffic-in",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "4789",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "docker-pull",
+            "properties": {
+              "protocol": "TCP",
+              "sourcePortRange": "*",
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1040,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "RDP",
+            "properties": {
+              "protocol": "TCP",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1050,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "remote-api",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "2376",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1060,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "vizualizer",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "8080",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1070,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      },
+      "resources": [],
+      "dependsOn": []
+    },
+    {
+      "name": "cluster-vnet",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "cluster-vnet"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('cluster-vnetPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('cluster-vnetClusterSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('cluster-vnetClusterSubnetPrefix')]"
+            }
+          },
+          {
+            "name": "[variables('cluster-vnetSubnet2Name')]",
+            "properties": {
+              "addressPrefix": "[variables('cluster-vnetSubnet2Prefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('clusterdisksName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "clusterdisks"
+      },
+      "properties": {
+        "accountType": "[parameters('clusterdisksType')]"
+      }
+    },
+    {
+      "name": "[concat(variables('masterNicName'), '-', copyIndex())]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "masternicscopy",
+        "count": "[parameters('numberOfMasters')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'cluster-vnet')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('masterPublicIpName'), '-', copyIndex()))]"
+      ],
+      "tags": {
+        "displayName": "masterNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('masterSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('masterPublicIpName'), '-', copyIndex()))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('masterName'), '-', copyIndex())]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "masterscopy",
+        "count": "[parameters('numberOfMasters')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('clusterdisksName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', copyIndex()))]"
+      ],
+      "tags": {
+        "displayName": "master"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('masterVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('masterName')]",
+          "adminUsername": "[parameters('masterAdminUsername')]",
+          "adminPassword": "[parameters('masterAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('linux-ImagePublisher')]",
+            "offer": "[variables('linux-ImageOffer')]",
+            "sku": "[variables('linux-sku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "masterOSDisk",
+            "vhd": {
+              "uri": "[concat('https://', variables('clusterdisksName'), '.blob.core.windows.net/', variables('masterStorageAccountContainerName'), '/', concat(variables('masterOSDiskName'), '-', copyIndex()), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', copyIndex()))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "masterCustomScriptInit",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('masterName'), '-', copyIndex()))]"
+          ],
+          "tags": {
+            "displayName": "masterCustomScriptInit"
+          },
+          "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "CustomScript",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [ "https://raw.githubusercontent.com/dogtail9/vsts-agents/master/ARMTemplate/ARMTemplate/CustomScripts/masterCustomScriptInit.sh" ],
+              "commandToExecute": "[concat('sh ', 'masterCustomScriptInit.sh')]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "[concat(variables('linuxnodeNicName'), '-', copyIndex())]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "linuxnodenicscopy",
+        "count": "[parameters('numberOfLinuxNodes')]"
+      },
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'cluster-vnet')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('linuxNodePublicIpName'), '-', copyIndex()))]"
+      ],
+      "tags": {
+        "displayName": "linuxnodeNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('linuxnodeSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('linuxNodePublicIpName'), '-', copyIndex()))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('linuxnodeName'), '-', copyIndex())]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "linuxnodecopy",
+        "count": "[parameters('numberOfLinuxNodes')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('clusterdisksName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('linuxnodeNicName'), '-', copyIndex()))]"
+      ],
+      "tags": {
+        "displayName": "linuxnode"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('linuxnodeVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('linuxnodeName')]",
+          "adminUsername": "[parameters('masterAdminUserName')]",
+          "adminPassword": "[parameters('masterAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('linux-ImagePublisher')]",
+            "offer": "[variables('linux-ImageOffer')]",
+            "sku": "[variables('linux-sku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "linuxnodeOSDisk",
+            "vhd": {
+              "uri": "[concat('https://', variables('clusterdisksName'), '.blob.core.windows.net/', variables('linuxnodeStorageAccountContainerName'), '/', concat(variables('linuxnodeOSDiskName'), '-', copyIndex()), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('linuxnodeNicName'), '-', copyIndex()))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "linuxNodeScript",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('linuxnodeName'), '-', copyIndex()))]",
+            "[resourceId('Microsoft.Compute/virtualMachines/extensions', concat(variables('masterName'), '-0'), 'masterCustomScriptInit' )]"
+          ],
+          "tags": {
+            "displayName": "linuxNodeScript"
+          },
+          "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "CustomScript",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [ "https://raw.githubusercontent.com/dogtail9/vsts-agents/master/ARMTemplate/ARMTemplate/CustomScripts/joinLinuxNodeToSwarm.sh" ],
+              "commandToExecute": "[concat('bash ', 'joinLinuxNodeToSwarm.sh', ' ', variables('singleQuote'), parameters('masterAdminPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('masterAdminUserName'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('PublicIpDnsNamePrefix'), variables('singleQuote'))]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "[concat(variables('windowsnodeNicName'), '-', copyIndex())]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "windowsnodenicscopy",
+        "count": "[parameters('numberOfWindowsNodes')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'cluster-vnet')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('windowsNodePublicIpName'), '-', copyIndex()))]"
+      ],
+      "tags": {
+        "displayName": "windowsnodeNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('windowsnodeSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('windowsNodePublicIpName'), '-', copyIndex()))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('windowsnodeName'), '-', copyIndex())]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "windowsnodecopy",
+        "count": "[parameters('numberOfWindowsNodes')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('clusterdisksName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('windowsnodeNicName'), '-', copyIndex()))]"
+      ],
+      "tags": {
+        "displayName": "windowsnode"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('windowsnodeVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('windowsnodeName')]",
+          "adminUsername": "[parameters('masterAdminUserName')]",
+          "adminPassword": "[parameters('masterAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('windowsnodeImagePublisher')]",
+            "offer": "[variables('windowsnodeImageOffer')]",
+            "sku": "[variables('windows-sku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "windowsnodeOSDisk",
+            "vhd": {
+              "uri": "[concat('https://', variables('clusterdisksName'), '.blob.core.windows.net/', variables('windowsnodeStorageAccountContainerName'), '/', concat(variables('windowsnodeOSDiskName'), '-', copyIndex()), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('windowsnodeNicName'), '-', copyIndex()))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('masterPublicIpName'), '-', copyIndex())]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "mastersipcopy",
+        "count": "[parameters('numberOfMasters')]"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "masterPublicIp"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[concat(variables('masterPublicIpDnsName'), '-', copyIndex())]"
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('linuxNodePublicIpName'), '-', copyIndex())]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "linuxnodeipcopy",
+        "count": "[parameters('numberOfLinuxNodes')]"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "linuxNodePublicIp"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[concat(variables('linuxNodePublicIpDnsName'), '-', copyIndex())]"
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('windowsNodePublicIpName'), '-', copyIndex())]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "windowsnodeipcopy",
+        "count": "[parameters('numberOfWindowsNodes')]"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "linuxNodePublicIp"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[concat(variables('windowsNodePublicIpDnsName'), '-', copyIndex())]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}
