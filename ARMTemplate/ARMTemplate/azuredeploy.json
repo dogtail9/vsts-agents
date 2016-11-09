@@ -44,7 +44,7 @@
     "singleQuote": "'",
     "masterName": "master",
     "linuxnodeName": "linuxnode",
-    "windowsnodeName": "windowsnode",
+    "windowsnodeName": "winnode",
     "masterPublicIpDnsName": "[concat(parameters('PublicIpDnsNamePrefix'), '-master')]",
     "linuxNodePublicIpDnsName": "[concat(parameters('PublicIpDnsNamePrefix'), '-linux-node')]",
     "windowsNodePublicIpDnsName": "[concat(parameters('PublicIpDnsNamePrefix'), '-win-node')]",
@@ -333,14 +333,14 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', copyIndex()))]"
       ],
       "tags": {
-        "displayName": "master"
+        "displayName": "[concat(variables('masterName'), '-', copyIndex())]"
       },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[variables('masterVmSize')]"
         },
         "osProfile": {
-          "computerName": "[variables('masterName')]",
+          "computerName": "[concat(variables('masterName'), '-', copyIndex())]",
           "adminUsername": "[parameters('masterAdminUsername')]",
           "adminPassword": "[parameters('masterAdminPassword')]"
         },
@@ -443,14 +443,14 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('linuxnodeNicName'), '-', copyIndex()))]"
       ],
       "tags": {
-        "displayName": "linuxnode"
+        "displayName": "[concat(variables('linuxnodeName'), '-', copyIndex())]"
       },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[variables('linuxnodeVmSize')]"
         },
         "osProfile": {
-          "computerName": "[variables('linuxnodeName')]",
+          "computerName": "[concat(variables('linuxnodeName'), '-', copyIndex())]",
           "adminUsername": "[parameters('masterAdminUserName')]",
           "adminPassword": "[parameters('masterAdminPassword')]"
         },
@@ -554,14 +554,14 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('windowsnodeNicName'), '-', copyIndex()))]"
       ],
       "tags": {
-        "displayName": "windowsnode"
+        "displayName": "[concat(variables('windowsnodeName'), '-', copyIndex())]"
       },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[variables('windowsnodeVmSize')]"
         },
         "osProfile": {
-          "computerName": "[variables('windowsnodeName')]",
+          "computerName": "[concat(variables('windowsnodeName'), '-', copyIndex())]",
           "adminUsername": "[parameters('masterAdminUserName')]",
           "adminPassword": "[parameters('masterAdminPassword')]"
         },
