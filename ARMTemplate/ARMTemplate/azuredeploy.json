@@ -588,7 +588,32 @@
             }
           ]
         }
-      }
+      },
+      "resources": [
+        {
+          "name": "windowsNodeScript",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('windowsnodeName'), '-', copyIndex()))]",
+            "[resourceId('Microsoft.Compute/virtualMachines/extensions', concat(variables('masterName'), '-0'), 'masterCustomScriptInit' )]"
+          ],
+          "tags": {
+            "displayName": "windowsNodeScript"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.4",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [ "https://raw.githubusercontent.com/dogtail9/vsts-agents/master/ARMTemplate/ARMTemplate/CustomScripts/joinWindowsNodeToSwarm.ps1" ],
+              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'joinWindowsNodeToSwarm.ps1', ' -username ', '\"', parameters('masterAdminUserName'), '\"', ' -password ', '\"',parameters('masterAdminPassword'), '\"', ' -dns ', '\"', parameters('PublicIpDnsNamePrefix'), '\"')]"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "[concat(variables('masterPublicIpName'), '-', copyIndex())]",
