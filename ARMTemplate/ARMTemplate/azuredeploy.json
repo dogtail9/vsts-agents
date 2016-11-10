@@ -320,27 +320,23 @@
       }
     },
     {
-      "name": "[concat(variables('masterName'), '-', copyIndex())]",
+      "name": "[concat(variables('masterName'), '-0')]",
       "type": "Microsoft.Compute/virtualMachines",
       "location": "[resourceGroup().location]",
       "apiVersion": "2015-06-15",
-      "copy": {
-        "name": "masterscopy",
-        "count": "[parameters('numberOfMasters')]"
-      },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('clusterdisksName'))]",
-        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', copyIndex()))]"
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-0'))]"
       ],
       "tags": {
-        "displayName": "[concat(variables('masterName'), '-', copyIndex())]"
+        "displayName": "[concat(variables('masterName'), '-0')]"
       },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[variables('masterVmSize')]"
         },
         "osProfile": {
-          "computerName": "[concat(variables('masterName'), '-', copyIndex())]",
+          "computerName": "[concat(variables('masterName'), '-0')]",
           "adminUsername": "[parameters('masterAdminUsername')]",
           "adminPassword": "[parameters('masterAdminPassword')]"
         },
@@ -354,7 +350,7 @@
           "osDisk": {
             "name": "masterOSDisk",
             "vhd": {
-              "uri": "[concat('https://', variables('clusterdisksName'), '.blob.core.windows.net/', variables('masterStorageAccountContainerName'), '/', concat(variables('masterOSDiskName'), '-', copyIndex()), '.vhd')]"
+              "uri": "[concat('https://', variables('clusterdisksName'), '.blob.core.windows.net/', variables('masterStorageAccountContainerName'), '/', concat(variables('masterOSDiskName'), '-0'), '.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -363,7 +359,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', copyIndex()))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-0'))]"
             }
           ]
         }
@@ -375,7 +371,7 @@
           "location": "[resourceGroup().location]",
           "apiVersion": "2015-06-15",
           "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('masterName'), '-', copyIndex()))]"
+            "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('masterName'), '-0'))]"
           ],
           "tags": {
             "displayName": "masterCustomScriptInit"
@@ -388,6 +384,81 @@
             "settings": {
               "fileUris": [ "https://raw.githubusercontent.com/dogtail9/vsts-agents/master/ARMTemplate/ARMTemplate/CustomScripts/masterCustomScriptInit.sh" ],
               "commandToExecute": "[concat('sh ', 'masterCustomScriptInit.sh')]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "[concat(variables('masterName'), '-', add(copyIndex(),1))]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "masterscopy",
+        "count": "[sub(parameters('numberOfMasters'),1)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('clusterdisksName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', add(copyIndex(),1)))]"
+      ],
+      "tags": {
+        "displayName": "[concat(variables('masterName'), '-', add(copyIndex(),1))]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('masterVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(variables('masterName'), '-', add(copyIndex(),1))]",
+          "adminUsername": "[parameters('masterAdminUsername')]",
+          "adminPassword": "[parameters('masterAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('linux-ImagePublisher')]",
+            "offer": "[variables('linux-ImageOffer')]",
+            "sku": "[variables('linux-sku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "masterOSDisk",
+            "vhd": {
+              "uri": "[concat('https://', variables('clusterdisksName'), '.blob.core.windows.net/', variables('masterStorageAccountContainerName'), '/', concat(variables('masterOSDiskName'), '-', add(copyIndex(),1)), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', add(copyIndex(),1)))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "joinMasterToSwarmScript",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('masterName'), '-', add(copyIndex(),1)))]",
+            "[resourceId('Microsoft.Compute/virtualMachines/extensions', concat(variables('masterName'), '-0'), 'masterCustomScriptInit' )]"
+          ],
+          "tags": {
+            "displayName": "masterCustomScriptInit"
+          },
+          "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "CustomScript",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [ "https://raw.githubusercontent.com/dogtail9/vsts-agents/master/ARMTemplate/ARMTemplate/CustomScripts/joinMasterToSwarm.sh" ],
+              "commandToExecute": "[concat('bash ', 'joinMasterToSwarm.sh', ' ', variables('singleQuote'), parameters('masterAdminPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('masterAdminUserName'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('PublicIpDnsNamePrefix'), variables('singleQuote'))]"
             }
           }
         }
