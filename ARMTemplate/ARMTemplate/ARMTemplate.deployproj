@@ -28,6 +28,7 @@
     <Content Include="azuredeploy.json" />
     <Content Include="azuredeploy.parameters.json" />
     <None Include="CustomScripts\joinLinuxNodeToSwarm.sh" />
+    <None Include="CustomScripts\joinMasterToSwarm.sh" />
     <None Include="CustomScripts\joinWindowsNodeToSwarm.ps1" />
     <None Include="CustomScripts\masterCustomScriptInit.sh" />
     <None Include="DEMO.txt" />
