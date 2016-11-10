@@ -48,3 +48,8 @@ docker run --rm -e VSTS_ACCOUNT=<ACOUNT> -e VSTS_TOKEN=<TOKEN> -it microsoft/vst
 docker run --rm -e VSTS_ACCOUNT=<ACOUNT> -e VSTS_TOKEN=<TOKEN> -it dogtail9/vsts-agent-ubuntu-base
 docker run --rm -e VSTS_ACCOUNT=<ACOUNT> -e VSTS_TOKEN=<TOKEN> -it dogtail9/vsts-agent-ubuntu-node
 ```
+
+## ARM Template
+<a href="https%3A%2F%2raw.githubusercontent.com%2Fdogtail9%2Fvsts-agents%2Fmaster%2FARMTemplate%2FARMTemplate%2Fazuredeploy.json" target="_blank">
+    <img src="http://armviz.io/visualizebutton.png"/>
+</a>

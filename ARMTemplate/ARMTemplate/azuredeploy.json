@@ -329,7 +329,7 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-0'))]"
       ],
       "tags": {
-        "displayName": "[concat(variables('masterName'), '-0')]"
+        "displayName": "master-0"
       },
       "properties": {
         "hardwareProfile": {
@@ -403,7 +403,7 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('masterNicName'), '-', add(copyIndex(),1)))]"
       ],
       "tags": {
-        "displayName": "[concat(variables('masterName'), '-', add(copyIndex(),1))]"
+        "displayName": "master-x"
       },
       "properties": {
         "hardwareProfile": {
@@ -514,7 +514,7 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('linuxnodeNicName'), '-', copyIndex()))]"
       ],
       "tags": {
-        "displayName": "[concat(variables('linuxnodeName'), '-', copyIndex())]"
+        "displayName": "linuxnode"
       },
       "properties": {
         "hardwareProfile": {
@@ -625,7 +625,7 @@
         "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('windowsnodeNicName'), '-', copyIndex()))]"
       ],
       "tags": {
-        "displayName": "[concat(variables('windowsnodeName'), '-', copyIndex())]"
+        "displayName": "windowsnode"
       },
       "properties": {
         "hardwareProfile": {
