@@ -10,10 +10,10 @@ apt-get -y install docker-engine
 service docker start
 systemctl enable docker
 apt-get -y install sshpass
-deletetext="To add a master to this swarm, run the following command:"
+deletetext="To add a manager to this swarm, run the following command:"
 commandstring="sshpass -p $1 ssh -o StrictHostKeyChecking=no $2@$3-master-0.westeurope.cloudapp.azure.com"
 echo $commandstring
-token=$($commandstring 'echo $(sudo docker swarm join-token master)')
+token=$($commandstring 'echo $(sudo docker swarm join-token manager)')
 echo $token
 result=${token/$deletetext}
 echo $result
