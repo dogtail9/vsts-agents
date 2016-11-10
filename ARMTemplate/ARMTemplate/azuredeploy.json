@@ -16,7 +16,7 @@
     "numberOfMasters": {
       "type": "int",
       "defaultValue": 1,
-      "minValue": 1
+      "minValue": 2
     },
     "numberOfLinuxNodes": {
       "type": "int",
