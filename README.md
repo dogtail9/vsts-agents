@@ -50,7 +50,7 @@ docker run --rm -e VSTS_ACCOUNT=<ACOUNT> -e VSTS_TOKEN=<TOKEN> -it dogtail9/vsts
 ```
 
 ## ARM Template
-<a href="http://armviz.io/#/?load=https%3A%2F%2raw.githubusercontent.com%2Fdogtail9%2Fvsts-agents%2Fmaster%2FARMTemplate%2FARMTemplate%2Fazuredeploy.json" target="_blank">
+<a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2Fdogtail9%2Fvsts-agents%2Fmaster%2FARMTemplate%2FARMTemplate%2Fazuredeploy.json" target="_blank">
     <img src="http://armviz.io/visualizebutton.png"/>
 </a>
 <a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-application-gateway-create%2Fazuredeploy.json" target="_blank">
