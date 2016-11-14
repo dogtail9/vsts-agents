@@ -15,7 +15,7 @@
     },
     "numberOfMasters": {
       "type": "int",
-      "defaultValue": 1,
+      "defaultValue": 2,
       "minValue": 2
     },
     "numberOfLinuxNodes": {
@@ -383,7 +383,7 @@
             "autoUpgradeMinorVersion": true,
             "settings": {
               "fileUris": [ "https://raw.githubusercontent.com/dogtail9/vsts-agents/master/ARMTemplate/ARMTemplate/CustomScripts/masterCustomScriptInit.sh" ],
-              "commandToExecute": "[concat('sh ', 'masterCustomScriptInit.sh')]"
+              "commandToExecute": "[concat('sh ', 'masterCustomScriptInit.sh',' ', variables('singleQuote'), parameters('masterAdminPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('masterAdminUserName'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('PublicIpDnsNamePrefix'), variables('singleQuote'))]"
             }
           }
         }
