@@ -11,4 +11,4 @@ service docker start
 systemctl enable docker
 docker swarm init
 docker service create --name=viz --publish=8080:8080/tcp --constraint=node.role==manager --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock manomarks/visualizer
-docker service create --name=api --publish=80:80/tcp --constraint=node.role==manager -e docker:hostname=$3-master-0.westeurope.cloudapp.azure.com -e docker:username=$2 -e docker:password=$1 user/sshtestsitefordocker:latest
+docker service create --name=api --publish=80:80/tcp --constraint=node.role==manager -e docker:hostname=$3-master-0.westeurope.cloudapp.azure.com -e docker:username=$2 -e docker:password=$1 dogtail9/buildserverapi
