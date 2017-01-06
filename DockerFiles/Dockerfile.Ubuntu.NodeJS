@@ -1,4 +1,4 @@
-FROM dogtail9/vsts-agent-ubuntu-base
+FROM dogtail9/vsts-agent:ubuntu-base-v0.1
 # install Javascript tools
 
 ENV NODE_VERSION_LTS=4.5.0 \
@@ -9,8 +9,6 @@ ENV NODE_VERSION_LTS=4.5.0 \
     mocha=/usr/local/vsts-agent/.nodenv/shims/mocha \
     gulp=/usr/local/vsts-agent/.nodenv/shims/gulp \
     PATH=/usr/local/vsts-agent/.nodenv/shims:/usr/local/vsts-agent/.nodenv/bin:$PATH
-
-USER vsts
 
 RUN \
      git clone https://github.com/nodenv/nodenv.git ~/.nodenv \

@@ -5,9 +5,9 @@ ENV AGENT_VERSION=2.107.1
 
 WORKDIR ./Agent
 
-RUN powershell -Command $ErrorActionPreference = 'Stop' ; \ 
-                        (New-Object System.Net.WebClient).DownloadFile('https://github.com/Microsoft/vsts-agent/releases/download/v2.107.1/vsts-agent-win7-x64-2.107.1.zip', 'agent.zip') ; \  
-                        Expand-Archive agent.zip -DestinationPath $PWD ; \
+RUN powershell -Command $ErrorActionPreference = 'Stop'; \
+                        (New-Object System.Net.WebClient).DownloadFile('https://github.com/Microsoft/vsts-agent/releases/download/v2.107.1/vsts-agent-win7-x64-2.107.1.zip', 'agent.zip'); \
+                        Expand-Archive agent.zip -DestinationPath $PWD; \
                         Remove-Item -Force agent.zip ;                        
 
 COPY ./start.ps1 .
@@ -51,18 +51,18 @@ RUN powershell -Command \
 
 # Install Grunt & Gulp
 RUN powershell -Command \
-    npm install -g grunt ; \
-    npm install -g gulp ;     
+    npm install -g grunt; \
+    npm install -g gulp;     
 
 # Install Java
 ENV JAVA_JDK_DOWNLOAD_URL http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-windows-x64.exe
 
-RUN powershell -NoProfile -Command\
-    $client = new-object System.Net.WebClient ; \ 
-    $cookie = 'oraclelicense=accept-securebackup-cookie' ; \
-    $client.Headers.Add([System.Net.HttpRequestHeader]::Cookie, $cookie) ; \ 
-    $client.downloadFile('http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-windows-x64.exe', 'c:\agent\jdk-8u112-windows-x64.exe') ; \
-    Start-Process -filepath jdk-8u112-windows-x64.exe -passthru -wait -argumentlist "/s" ; \
+RUN powershell -NoProfile -Command \
+    $client = new-object System.Net.WebClient; \
+    $cookie = 'oraclelicense=accept-securebackup-cookie'; \
+    $client.Headers.Add([System.Net.HttpRequestHeader]::Cookie, $cookie); \
+    $client.downloadFile('http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-windows-x64.exe', 'c:\agent\jdk-8u112-windows-x64.exe'); \
+    Start-Process -filepath jdk-8u112-windows-x64.exe -passthru -wait -argumentlist "/s"; \
     Remove-Item -Force jdk-8u112-windows-x64.exe
 
 ENV JAVA_HOME c:\\Program Files\\java\\jre1.8.0_112
